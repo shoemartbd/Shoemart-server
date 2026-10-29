@@ -1,8 +1,9 @@
+<% const isReset = typeof purpose !== "undefined" && purpose === "reset"; %>
 <!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Email Verification</title>
+    <title><%= isReset ? "Password Reset" : "Email Verification" %></title>
   </head>
   <body
     style="
@@ -36,7 +37,7 @@
             <tr>
               <td align="center" style="padding-bottom: 20px">
                 <h1 style="margin: 0; font-size: 24px; color: #1a1a1a">
-                  Verify Your Email Address
+                  <%= isReset ? "Reset Your Password" : "Verify Your Email Address" %>
                 </h1>
               </td>
             </tr>
@@ -58,8 +59,14 @@
                   padding-bottom: 25px;
                 "
               >
+                <% if (isReset) { %>
+                We received a request to reset your password. Use the One-Time
+                Password (OTP) below to set a new one. If you didn't ask for
+                this, you can ignore this email.
+                <% } else { %>
                 Thank you for signing up. Please use the One-Time Password (OTP)
                 below to verify your email address.
+                <% } %>
               </td>
             </tr>
 
@@ -93,7 +100,7 @@
                   padding-top: 15px;
                 "
               >
-                This OTP is valid for <strong>2 minutes</strong>.
+                This OTP is valid for <strong>10 minutes</strong>.
               </td>
             </tr>
 

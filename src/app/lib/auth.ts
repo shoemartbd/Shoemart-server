@@ -134,12 +134,13 @@ export const auth = betterAuth({
               templateData: {
                 name: user.name,
                 otp,
+                purpose: "reset",
               },
             });
           }
         }
       },
-      expiresIn: 2 * 60, // 2 minutes in seconds
+      expiresIn: 10 * 60, // 10 minutes in seconds (emails can arrive late)
       otpLength: 6,
     }),
   ],

@@ -102,3 +102,23 @@ export const wholesaleRequestRateLimiter = rateLimit({
     res.status(options.statusCode).json(options.message);
   },
 });
+
+// Password-reset OTP emails. Counted per email address, so nobody can flood
+// one inbox and shoppers behind the same IP don't block each other.
+export const passwordResetRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  limit: 5, // 5 codes per email per hour
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const email = String(req.body?.email ?? "").trim().toLowerCase();
+    return email ? `email:${email}` : ipKeyGenerator(req.ip ?? "");
+  },
+  message: {
+    success: false,
+    message: "Too many reset codes requested, please try again in an hour",
+  },
+  handler: (req, res, next, options) => {
+    res.status(options.statusCode).json(options.message);
+  },
+});
