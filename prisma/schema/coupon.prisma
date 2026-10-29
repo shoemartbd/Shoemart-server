@@ -1,0 +1,40 @@
+enum DiscountType {
+  FLAT
+  PERCENTAGE
+}
+
+model Coupon {
+  id                String       @id @default(uuid())
+  code              String       @unique
+  discountType      DiscountType
+  discountAmount    Float
+  maxDiscountAmount Float?
+  minPurchaseAmount Float        @default(0)
+  startDate         DateTime
+  endDate           DateTime
+  isActive          Boolean      @default(true)
+
+  // Relations
+  shopId   String
+  shop     Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  products CouponProduct[]
+  orders   Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shopId])
+  @@index([code])
+  @@map("coupons")
+}
+
+model CouponProduct {
+  id        String  @id @default(uuid())
+  couponId  String
+  productId String
+  coupon    Coupon  @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([couponId, productId])
+  @@map("coupon_products")
+}

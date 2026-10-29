@@ -1,0 +1,9 @@
+model ShippingSetting {
+  id                      String @id @default("default") // a single row
+  insideDhakaShippingFee  Float  @default(70)
+  outsideDhakaShippingFee Float  @default(130)
+
+  updatedAt DateTime @updatedAt
+
+  @@map("shipping_settings")
+}

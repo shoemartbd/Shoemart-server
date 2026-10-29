@@ -1,0 +1,21 @@
+// Homepage promo strip under "Top Selling": a scrolling text line and a wide
+// banner image. Single row, like SiteSetting.
+model HomePromo {
+  id String @id @default("default")
+
+  tickerText    String?
+  tickerEnabled Boolean @default(true)
+
+  bannerImage   String?
+  bannerLink    String?
+  bannerEnabled Boolean @default(true)
+
+  // Second banner, shown above "All Products"
+  productsBannerImage   String?
+  productsBannerLink    String?
+  productsBannerEnabled Boolean @default(true)
+
+  updatedAt DateTime @updatedAt
+
+  @@map("home_promos")
+}

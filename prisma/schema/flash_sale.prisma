@@ -1,0 +1,11 @@
+model FlashSale {
+  id        String   @id @default("default") // a single row
+  isActive  Boolean  @default(false)
+  startTime DateTime?
+  endTime   DateTime?
+  updatedAt DateTime @updatedAt
+
+  products FlashSaleProduct[]
+
+  @@map("flash_sales")
+}

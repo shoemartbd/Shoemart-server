@@ -1,0 +1,60 @@
+model LandingPage {
+  id       String  @id @default(uuid())
+  slug     String  @unique
+  isActive Boolean @default(true)
+
+  // Design — theme color key (see LANDING_PAGE_THEMES on the client), per-section visibility,
+  // and section order (see LANDING_PAGE_SECTION_KEYS on the client)
+  themeColor             String   @default("violet")
+  showGallerySection     Boolean  @default(true)
+  showAboutSection       Boolean  @default(true)
+  showDescriptionSection Boolean  @default(true)
+  showReviewsSection     Boolean  @default(true)
+  sectionOrder           String[] @default(["price", "gallery", "about", "description", "reviews"])
+
+  // Relations
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  shopId    String
+  shop      Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  // Header
+  campaignTitle            String
+  campaignShortDescription String?
+  bannerImage              String?
+
+  // Price highlight labels (free text set by the seller, e.g. "পূর্বের মূল্য" / "Regular Price")
+  regularPriceLabel String?
+  offerPriceLabel   String?
+
+  // Gallery
+  galleryHeading     String?
+  galleryDescription String?
+  galleryImages      String[]
+
+  // About + video
+  aboutHeading     String?
+  aboutDescription String?
+  videoUrl         String?
+
+  // Long description
+  descriptionTitle String?
+  description      String?
+
+  // Reviews
+  reviewHeading String?
+  reviewImages  String[]
+
+  // Order form
+  orderFormHeading String @default("Order Now")
+  orderButtonText  String @default("অর্ডার করুন")
+
+  views Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shopId])
+  @@index([productId])
+  @@map("landing_pages")
+}

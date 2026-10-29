@@ -1,0 +1,12 @@
+model HomeCategorySection {
+  id          String                  @id @default(uuid())
+  categoryId  String
+  category    Category                @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  displayType HomeCategoryDisplayType @default(BEST_SELLING)
+  order       Int                     @default(0)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@index([categoryId])
+  @@map("home_category_sections")
+}

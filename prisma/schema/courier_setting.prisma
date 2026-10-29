@@ -1,0 +1,27 @@
+model CourierSetting {
+  id String @id @default("default") // a single row
+
+  pathaoEnabled      Boolean @default(false)
+  pathaoBaseUrl      String?
+  pathaoClientId     String?
+  pathaoClientSecret String?
+  pathaoUsername     String?
+  pathaoPassword     String?
+  pathaoStoreId      String?
+
+  steadfastEnabled          Boolean @default(false)
+  steadfastApiKey           String?
+  steadfastSecretKey        String?
+  steadfastWebhookAuthToken String?
+
+  // RedX Open API (https://openapi.redx.com.bd)
+  redxEnabled       Boolean @default(false)
+  redxMode          String  @default("SANDBOX") // SANDBOX | LIVE
+  redxAccessToken   String?
+  redxPickupStoreId String? // optional: which RedX pickup point to use
+  redxWebhookToken  String? // shared secret in the webhook URL
+
+  updatedAt DateTime @updatedAt
+
+  @@map("courier_settings")
+}

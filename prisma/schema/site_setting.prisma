@@ -1,0 +1,29 @@
+model SiteSetting {
+  id          String  @id @default("default") // a single row
+  siteName    String  @default("Shoe Mart")
+  tagline     String?
+  description String  @default("Your ultimate multivendor marketplace. Discover premium products from verified sellers across the nation.")
+  logo        String?
+  phone       String?
+  email       String?
+  address     String?
+
+  facebook  String?
+  youtube   String?
+  instagram String?
+  linkedin  String?
+  tiktok    String?
+  whatsapp  String?
+
+  copyrightText String @default("All rights reserved.")
+
+  // Products (or variants) at or below this stock show on the Low Stock page
+  lowStockThreshold Int @default(5)
+
+  // Lets customers place online orders without logging in
+  guestCheckoutEnabled Boolean @default(true)
+
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}

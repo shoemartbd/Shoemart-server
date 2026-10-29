@@ -1,0 +1,40 @@
+model OrderReturn {
+  id                 String  @id @default(uuid())
+  orderId            String
+  order              Order   @relation(fields: [orderId], references: [id])
+  shopId             String // every item in one submission belongs to the same seller's shop
+  shop               Shop    @relation(fields: [shopId], references: [id])
+  refundAmount       Float // sum(returnQty * price) for this submission
+  shippingFee        Float // order.shippingFee snapshot after this return
+  discountAmount     Float // order.discountAmount snapshot after this return
+  newTotalAmount     Float // order.totalAmount right after this return
+  processedByAdminId String?
+  processedByAdmin   User?   @relation("OrderReturnProcessedBy", fields: [processedByAdminId], references: [id])
+
+  items OrderReturnItem[]
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([shopId])
+  @@map("order_returns")
+}
+
+model OrderReturnItem {
+  id               String          @id @default(uuid())
+  orderReturnId    String
+  orderReturn      OrderReturn     @relation(fields: [orderReturnId], references: [id], onDelete: Cascade)
+  orderItemId      String
+  orderItem        OrderItem       @relation(fields: [orderItemId], references: [id])
+  productId        String
+  product          Product         @relation(fields: [productId], references: [id])
+  productVariantId String?
+  productVariant   ProductVariant? @relation(fields: [productVariantId], references: [id])
+  quantity         Int
+  price            Float
+  subtotal         Float
+
+  @@index([orderReturnId])
+  @@index([orderItemId])
+  @@map("order_return_items")
+}

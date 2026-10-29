@@ -1,0 +1,96 @@
+model Product {
+  id               String        @id @default(uuid())
+  name             String
+  slug             String        @unique
+  description      String
+  shortDescription String
+  images           String[]
+  videoUrl         String? // YouTube or Facebook video link, shown on the product page
+  stock            Int           @default(0)
+  status           ProductStatus @default(DRAFT)
+  type             ProductType   @default(SIMPLE)
+  attributes       Json?
+
+  // SKU / Barcode (SIMPLE products only — VARIABLE products carry it per-variant)
+  sku String? @unique
+
+  // Pricing
+  purchasePrice Float // What vendor bought it for (internal cost)
+  regularPrice  Float // Original MRP / crossed-out price shown to customer
+  sellPrice     Float // Actual selling price (what customer pays)
+
+  // Tags / searchability
+  tags String[]
+
+  // Vat, Shipping, Featured configuration
+  vatType       VatType @default(INCLUDED)
+  vatPercentage Float   @default(0)
+  freeShipping  Boolean @default(false)
+
+  // Homepage showcase labels; a product can carry several
+  highlights ProductHighlight[] @default([])
+
+  // Relations
+  shopId     String
+  shop       Shop     @relation(fields: [shopId], references: [id])
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+  brandId    String?
+  brand      Brand?   @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  sizeChartId String?
+  sizeChart   SizeChart? @relation(fields: [sizeChartId], references: [id], onDelete: SetNull)
+
+  variants     ProductVariant[]
+  reviews      Review[]
+  orderItems   OrderItem[]
+  cartItems    CartItem[]
+  coupons      CouponProduct[]
+  posCartItems PosCartItem[]
+  landingPages LandingPage[]
+  returnItems  OrderReturnItem[]
+  flashSaleEntries FlashSaleProduct[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shopId])
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([sizeChartId])
+  @@index([status])
+  @@index([slug])
+  // Storefront lists: active products, newest first
+  @@index([status, createdAt])
+  // ?highlight=TRENDING etc.
+  @@index([highlights], type: Gin)
+  // Fast "contains" search on name / barcode (pg_trgm)
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_name_trgm_idx")
+  @@index([sku(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_sku_trgm_idx")
+  @@map("products")
+}
+
+model ProductVariant {
+  id          String  @id @default(uuid())
+  productId   String
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  combination String // e.g. "XL-Red-500gm"
+  sku         String? @unique
+
+  quantity      Int     @default(0)
+  purchasePrice Float
+  regularPrice  Float
+  sellPrice     Float
+  image         String?
+
+  orderItems  OrderItem[]
+  cartItems   CartItem[]
+  returnItems OrderReturnItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  // Barcode search on variant SKUs (pg_trgm)
+  @@index([sku(ops: raw("gin_trgm_ops"))], type: Gin, map: "product_variants_sku_trgm_idx")
+  @@map("product_variants")
+}

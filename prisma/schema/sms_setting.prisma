@@ -1,0 +1,11 @@
+model SmsSetting {
+  id String @id @default("default") // a single row
+
+  enabled  Boolean @default(false)
+  apiKey   String?
+  senderId String?
+
+  updatedAt DateTime @updatedAt
+
+  @@map("sms_settings")
+}

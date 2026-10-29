@@ -1,0 +1,35 @@
+model ExpenseCategory {
+  id       String  @id @default(uuid())
+  name     String
+  isActive Boolean @default(true)
+
+  shopId   String
+  shop     Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shopId])
+  @@map("expense_categories")
+}
+
+model Expense {
+  id    String   @id @default(uuid())
+  name  String
+  price Float
+  note  String?
+  date  DateTime
+
+  categoryId String
+  category   ExpenseCategory @relation(fields: [categoryId], references: [id])
+  shopId     String
+  shop       Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shopId])
+  @@index([categoryId])
+  @@map("expenses")
+}

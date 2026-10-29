@@ -1,0 +1,27 @@
+model AbandonedCheckout {
+  id           String         @id @default(uuid())
+  sessionToken String         @unique
+  source       CheckoutSource @default(STOREFRONT)
+
+  landingPageSlug String?
+
+  // Whatever the customer had filled in before leaving — all optional since
+  // a snapshot can be saved before any field is touched (items-only).
+  fullName String?
+  phone    String?
+  address  String?
+  district String?
+  notes    String?
+
+  items          Json // snapshot: [{ productId, productVariantId, name, variantName, image, quantity, price }]
+  subtotal       Float?
+  shippingFee    Float?
+  discountAmount Float?
+  total          Float?
+
+  createdAt      DateTime @default(now())
+  lastActivityAt DateTime @default(now()) @updatedAt
+
+  @@index([lastActivityAt])
+  @@map("abandoned_checkouts")
+}

@@ -1,0 +1,73 @@
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  USER
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  PENDING
+  DELETED
+}
+
+enum ProductStatus {
+  ACTIVE
+  DRAFT
+  OUT_OF_STOCK
+  DELETED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  IN_COURIER
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum ProductType {
+  SIMPLE
+  VARIABLE
+}
+
+enum OrderType {
+  ONLINE
+  POS
+  LANDING_PAGE
+}
+
+enum VatType {
+  INCLUDED
+  EXCLUDED
+}
+
+enum CheckoutSource {
+  STOREFRONT
+  LANDING_PAGE
+}
+
+enum CourierProvider {
+  PATHAO
+  STEADFAST
+  REDX
+}
+
+enum HomeCategoryDisplayType {
+  BEST_SELLING
+  LATEST
+}
+
+enum ProductHighlight {
+  NEW_ARRIVAL
+  TRENDING
+  TOP_SELLING
+  OUR_SERVICE
+}

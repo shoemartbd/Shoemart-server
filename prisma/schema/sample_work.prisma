@@ -1,0 +1,16 @@
+// Sample work / catalogue PDFs customers can view and download from the homepage.
+// The file lives on Cloudinary (uploaded straight from the admin's browser).
+model SampleWork {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  fileUrl     String
+  publicId    String?
+  fileSize    Int? // bytes
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("sample_works")
+}

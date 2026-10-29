@@ -1,0 +1,22 @@
+enum HeroSliderType {
+  SLIDE // rotates in the main carousel
+  BANNER // static offer banner beside the carousel (max 2)
+}
+
+enum HeroMediaType {
+  IMAGE
+  VIDEO // slides only
+}
+
+model HeroSlider {
+  id        String         @id @default(uuid())
+  image     String // media URL (image or video)
+  mediaType HeroMediaType  @default(IMAGE)
+  type      HeroSliderType @default(SLIDE)
+  link      String?
+  isActive  Boolean        @default(true)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@map("hero_sliders")
+}

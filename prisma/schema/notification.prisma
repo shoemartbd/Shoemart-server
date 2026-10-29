@@ -1,0 +1,26 @@
+enum NotificationType {
+  ORDER_PLACED
+  ORDER_STATUS_CHANGED
+  PAYMENT_STATUS_CHANGED
+  ORDER_RETURN_PROCESSED
+}
+
+model Notification {
+  id      String           @id @default(uuid())
+  type    NotificationType
+  title   String
+  message String
+  isRead  Boolean          @default(false)
+
+  // Relations
+  userId  String
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}

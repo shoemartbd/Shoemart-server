@@ -1,0 +1,26 @@
+// Single-vendor store: exactly one row is expected to exist (see seed.ts).
+model Shop {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String?
+  logo        String?
+  banner      String?
+
+  // Relations
+  vendorId          String            @unique
+  vendor            User              @relation(fields: [vendorId], references: [id])
+  products          Product[]
+  orderItems        OrderItem[]
+  coupons           Coupon[]
+  posCartItems      PosCartItem[]
+  posOrders         Order[]
+  landingPages      LandingPage[]
+  expenseCategories ExpenseCategory[]
+  expenses          Expense[]
+  orderReturns      OrderReturn[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("shops")
+}

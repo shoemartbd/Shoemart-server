@@ -1,0 +1,27 @@
+enum WholesaleRequestStatus {
+  NEW
+  CONTACTED
+  CLOSED
+}
+
+// Bulk / B2B enquiries sent from the public /wholesale landing page.
+// `phone` is normalised to the 11-digit local form, e.g. 01712345678.
+model WholesaleRequest {
+  id           String                 @id @default(uuid())
+  name         String
+  phone        String
+  email        String?
+  businessName String?
+  businessType String? // Retail shop, online seller, corporate, ...
+  location     String?
+  categories   String[] // category names the buyer is interested in
+  quantity     String? // estimated order size, e.g. "100-500 pairs"
+  message      String?
+  status       WholesaleRequestStatus @default(NEW)
+  adminNote    String?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  @@index([status, createdAt])
+  @@map("wholesale_requests")
+}

@@ -1,0 +1,14 @@
+// Promo image shown in a popup on the storefront a few seconds after a visit
+// starts. Only one is live at a time.
+model Popup {
+  id           String   @id @default(uuid())
+  title        String? // admin label only
+  image        String // 4:5 portrait, e.g. 800 x 1000 px
+  link         String? // where a click on the image goes
+  delaySeconds Int      @default(3)
+  isActive     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("popups")
+}

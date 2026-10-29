@@ -1,0 +1,11 @@
+// Measurement chart image a product can link to ("View Size Chart" on the product page)
+model SizeChart {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  image     String
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("size_charts")
+}

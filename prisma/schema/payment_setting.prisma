@@ -1,0 +1,22 @@
+model PaymentSetting {
+  id String @id @default("default") // a single row
+
+  codEnabled Boolean @default(true)
+
+  sslcommerzEnabled       Boolean @default(false)
+  sslcommerzMode          String  @default("SANDBOX") // SANDBOX | LIVE
+  sslcommerzStoreId       String?
+  sslcommerzStorePassword String?
+
+  // bKash Tokenized Checkout (merchant credentials from bKash)
+  bkashEnabled   Boolean @default(false)
+  bkashMode      String  @default("SANDBOX") // SANDBOX | LIVE
+  bkashAppKey    String?
+  bkashAppSecret String?
+  bkashUsername  String?
+  bkashPassword  String?
+
+  updatedAt DateTime @updatedAt
+
+  @@map("payment_settings")
+}

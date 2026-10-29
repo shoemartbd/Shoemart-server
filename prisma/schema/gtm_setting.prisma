@@ -1,0 +1,13 @@
+// Google Tag Manager for the storefront and landing pages (single row)
+model GtmSetting {
+  id          String  @id @default("default")
+  isEnabled   Boolean @default(false)
+  containerId String? // web container, e.g. GTM-XXXXXXX
+  // Optional first-party loader: gtm.js is fetched from this server-side
+  // container domain (e.g. https://sgtm.example.com) instead of Google's
+  scriptDomain String?
+
+  updatedAt DateTime @updatedAt
+
+  @@map("gtm_settings")
+}

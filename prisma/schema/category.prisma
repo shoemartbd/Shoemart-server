@@ -1,0 +1,23 @@
+model Category {
+  id       String  @id @default(uuid())
+  name     String  @unique
+  slug     String  @unique
+  icon     String?
+  image    String?
+  isActive Boolean @default(true)
+
+  // Self-relation for subcategories
+  parentId      String?
+  parent        Category?  @relation("CategoryToSubcategory", fields: [parentId], references: [id])
+  subcategories Category[] @relation("CategoryToSubcategory")
+
+  products Product[]
+  homeCategorySections HomeCategorySection[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId])
+  @@index([slug])
+  @@map("categories")
+}

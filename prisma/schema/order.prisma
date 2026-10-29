@@ -1,0 +1,101 @@
+model Order {
+  id            String        @id @default(uuid())
+  orderSeq      Int           @default(autoincrement())
+  orderNumber   String?       @unique
+  orderType     OrderType     @default(ONLINE)
+  totalAmount   Float
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentMethod String? // cash, card, mfs, other
+  orderStatus   OrderStatus   @default(PENDING)
+
+  // Shipping address (structured)
+  fullName    String?
+  companyName String? // Optional, the customer's company
+  phone       String?
+  email       String? // Optional, for order updates by email
+  address     String?
+  district    String?
+
+  notes String? // Optional customer notes
+
+  // Relations
+  userId        String?
+  user          User?          @relation(fields: [userId], references: [id])
+  shopId        String?
+  shop          Shop?          @relation(fields: [shopId], references: [id])
+  items         OrderItem[]
+  notifications Notification[]
+  returns       OrderReturn[]
+
+  discountAmount Float   @default(0)
+  shippingFee    Float   @default(0)
+  vatAmount      Float   @default(0) // POS: VAT charged on top of (subtotal - discount)
+  couponId       String?
+  coupon         Coupon? @relation(fields: [couponId], references: [id])
+
+  // Courier assignment (Pathao / Steadfast) — set once an admin dispatches the order
+  courierProvider      CourierProvider?
+  courierConsignmentId String?
+  courierTrackingCode  String?
+  courierStatus        String?
+  courierAssignedAt    DateTime?
+
+  // Set once an SSLCommerz payment for this order has been validated
+  // (for bKash: the bKash transaction ID, trxID)
+  paymentValId String?
+
+  // bKash paymentID of the latest attempt; the callback only carries this
+  bkashPaymentId String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([shopId])
+  @@index([paymentStatus])
+  @@index([orderStatus])
+  @@index([district])
+  @@index([couponId])
+  // Order lists: newest first within a type (Online / POS / Landing Page)
+  @@index([orderType, createdAt])
+  @@index([createdAt])
+  // Admin order search by number / phone / name (pg_trgm)
+  @@index([orderNumber(ops: raw("gin_trgm_ops"))], type: Gin, map: "orders_orderNumber_trgm_idx")
+  @@index([phone(ops: raw("gin_trgm_ops"))], type: Gin, map: "orders_phone_trgm_idx")
+  @@index([fullName(ops: raw("gin_trgm_ops"))], type: Gin, map: "orders_fullName_trgm_idx")
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String @id @default(uuid())
+  quantity  Int
+  price     Float // Sell price at time of purchase
+  costPrice Float? // Purchase/cost price at time of purchase (null for orders placed before this field existed)
+
+  // Vendor payout tracking
+  vendorEarning   Float // price * quantity - commission
+  platformEarning Float // commission amount
+
+  // Item fulfillment status (per vendor)
+  status OrderStatus @default(PENDING)
+
+  // How much of `quantity` has been returned so far (remaining = quantity - returnedQuantity)
+  returnedQuantity Int @default(0)
+
+  // Relations
+  orderId          String
+  order            Order             @relation(fields: [orderId], references: [id])
+  productId        String
+  product          Product           @relation(fields: [productId], references: [id])
+  productVariantId String?
+  productVariant   ProductVariant?   @relation(fields: [productVariantId], references: [id])
+  shopId           String
+  shop             Shop              @relation(fields: [shopId], references: [id])
+  returnItems      OrderReturnItem[]
+
+  @@index([orderId])
+  @@index([shopId])
+  @@index([productId])
+  @@index([productVariantId])
+  @@map("order_items")
+}

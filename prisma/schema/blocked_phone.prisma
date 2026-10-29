@@ -1,0 +1,13 @@
+// Phone numbers barred from placing orders (fake / fraud orders).
+// `phone` is normalised to the 11-digit local form, e.g. 01712345678.
+model BlockedPhone {
+  id          String   @id @default(uuid())
+  phone       String   @unique
+  reason      String?
+  orderNumber String? // order it was blocked from, if any
+  blockedById String?
+  blockedBy   String? // name of the admin, kept as text for the log
+  createdAt   DateTime @default(now())
+
+  @@map("blocked_phones")
+}

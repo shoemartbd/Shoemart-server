@@ -1,0 +1,13 @@
+model FlashSaleProduct {
+  id          String    @id @default(uuid())
+  flashSaleId String    @default("default")
+  flashSale   FlashSale @relation(fields: [flashSaleId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  @@unique([flashSaleId, productId])
+  @@index([productId])
+  @@map("flash_sale_products")
+}
