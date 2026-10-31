@@ -41,7 +41,7 @@ const getAllCategories = async (queryParams: IQueryParams) => {
     .filter()
     .sort()
     .paginate()
-    .include({ parent: true, subcategories: true })
+    .include({ parent: true, subcategories: { orderBy: { createdAt: "asc" } } })
     .execute();
 
   return result;
