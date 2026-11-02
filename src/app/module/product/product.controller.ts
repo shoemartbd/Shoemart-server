@@ -45,6 +45,17 @@ const getAllProducts = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getWholesaleGallery = catchAsync(async (_req: Request, res: Response) => {
+  const result = await ProductService.getWholesaleGallery();
+
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "Wholesale gallery fetched successfully",
+    data: result,
+  });
+});
+
 const getProductById = catchAsync(async (req: Request, res: Response) => {
   const result = await ProductService.getProductById(req.params.id as string);
 
@@ -151,6 +162,7 @@ const uploadVariantImage = catchAsync(async (req: Request, res: Response) => {
 
 export const ProductController = {
   createProduct,
+  getWholesaleGallery,
   generateSku,
   getAllProducts,
   getProductById,

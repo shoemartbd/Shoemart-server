@@ -48,6 +48,7 @@ import { StaffRoutes } from "../module/staff/staff.route";
 import { SampleWorkRoutes } from "../module/sample-work/sampleWork.route";
 import { BlockedPhoneRoutes } from "../module/blocked-phone/blockedPhone.route";
 import { WholesaleRequestRoutes } from "../module/wholesale-request/wholesaleRequest.route";
+import { StoreRoutes } from "../module/store/store.route";
 
 const router = Router();
 
@@ -100,5 +101,6 @@ router.use("/staff", StaffRoutes);
 router.use("/sample-works", SampleWorkRoutes);
 router.use("/blocked-phones", BlockedPhoneRoutes);
 router.use("/wholesale-requests", WholesaleRequestRoutes);
+router.use("/stores", StoreRoutes);
 
 export const IndexRoutes = router;

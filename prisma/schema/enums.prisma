@@ -70,4 +70,6 @@ enum ProductHighlight {
   TRENDING
   TOP_SELLING
   OUR_SERVICE
+  // Shown in the "Product View" gallery on the wholesale page
+  WHOLESALE
 }

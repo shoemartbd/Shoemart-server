@@ -1,0 +1,22 @@
+// Physical outlets listed on the "Our Stores" page
+model Store {
+  id           String   @id @default(uuid())
+  name         String
+  // Location filter on the stores page, e.g. "Dhaka", "Chattogram"
+  city         String
+  address      String
+  // Free text such as "Open: 9.30 AM · Holiday: Friday"
+  openingHours String?
+  image        String?
+  // Only the src of a Google Maps embed iframe is stored
+  mapEmbedUrl  String?
+  // "Get directions" link (Google Maps share link)
+  directionUrl String?
+  order        Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([city])
+  @@map("stores")
+}

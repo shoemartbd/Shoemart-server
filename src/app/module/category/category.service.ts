@@ -20,6 +20,12 @@ const createCategory = async (payload: {
     if (!parent) {
       throw new AppError(status.NOT_FOUND, "Parent category not found");
     }
+    if (parent.parentId) {
+      throw new AppError(
+        status.BAD_REQUEST,
+        "A subcategory cannot have its own subcategory. Choose a root category as parent.",
+      );
+    }
   }
 
   const slug = await generateUniqueSlug(prisma, payload.name, "category");
@@ -95,6 +101,33 @@ const updateCategory = async (
   const existing = await prisma.category.findUnique({ where: { id } });
   if (!existing) {
     throw new AppError(status.NOT_FOUND, "Category not found");
+  }
+
+  // Keep the tree at two levels: parent must be a root, and a category
+  // that already has subcategories can't itself become a subcategory
+  if (payload.parentId) {
+    if (payload.parentId === id) {
+      throw new AppError(status.BAD_REQUEST, "A category cannot be its own parent");
+    }
+    const parent = await prisma.category.findUnique({
+      where: { id: payload.parentId },
+    });
+    if (!parent) {
+      throw new AppError(status.NOT_FOUND, "Parent category not found");
+    }
+    if (parent.parentId) {
+      throw new AppError(
+        status.BAD_REQUEST,
+        "A subcategory cannot have its own subcategory. Choose a root category as parent.",
+      );
+    }
+    const childCount = await prisma.category.count({ where: { parentId: id } });
+    if (childCount > 0) {
+      throw new AppError(
+        status.BAD_REQUEST,
+        "This category has subcategories, so it cannot be moved under another category.",
+      );
+    }
   }
 
   let slug: string | undefined;

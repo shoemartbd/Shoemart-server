@@ -43,7 +43,7 @@ export const PERMISSION_GROUPS = [
   {
     group: "Website",
     permissions: [
-      { key: "homepage.manage", label: "Manage homepage (sliders, banners, popups, testimonials, clients, sample works)" },
+      { key: "homepage.manage", label: "Manage homepage (sliders, banners, popups, testimonials, clients, sample works, stores)" },
       { key: "page.manage", label: "Manage pages & FAQ" },
       { key: "blog.manage", label: "Manage blogs" },
     ],
@@ -159,6 +159,7 @@ export const requiredStaffPermission = (path: string, method: string): Rule => {
     case "client-logos":
     case "popups":
     case "sample-works":
+    case "stores":
       return "homepage.manage";
     case "pages":
     case "faqs":
