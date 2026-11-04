@@ -14,6 +14,9 @@ router.patch(
   multerUpload.fields([
     { name: "bannerImage", maxCount: 1 },
     { name: "productsBannerImage", maxCount: 1 },
+    { name: "showcaseLeftImage", maxCount: 1 },
+    { name: "showcaseVideo", maxCount: 1 },
+    { name: "showcaseRightImage", maxCount: 1 },
   ]),
   HomePromoController.updateHomePromo,
 );

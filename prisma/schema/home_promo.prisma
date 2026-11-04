@@ -15,6 +15,15 @@ model HomePromo {
   productsBannerLink    String?
   productsBannerEnabled Boolean @default(true)
 
+  // Showcase above "All Products": photo | video | photo
+  showcaseLeftImage  String?
+  showcaseLeftLink   String?
+  showcaseVideo      String?
+  showcaseVideoLink  String?
+  showcaseRightImage String?
+  showcaseRightLink  String?
+  showcaseEnabled    Boolean @default(true)
+
   updatedAt DateTime @updatedAt
 
   @@map("home_promos")

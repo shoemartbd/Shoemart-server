@@ -18,6 +18,18 @@ const parseBoolean = (value: unknown) =>
 const parseText = (value: unknown) =>
   typeof value === "string" ? value.trim() || null : undefined;
 
+// A new upload replaces the file; remove<Field>=true clears it; else unchanged
+const fileField = (
+  files: Record<string, Express.Multer.File[]>,
+  body: Record<string, unknown>,
+  field: "showcaseLeftImage" | "showcaseVideo" | "showcaseRightImage",
+) => {
+  const file = files[field]?.[0];
+  if (file) return { [field]: file.path };
+  const flag = `remove${field[0].toUpperCase()}${field.slice(1)}`;
+  return parseBoolean(body[flag]) ? { [field]: null } : {};
+};
+
 const updateHomePromo = async (req: Request) => {
   await getHomePromo();
   const body = req.body ?? {};
@@ -44,6 +56,13 @@ const updateHomePromo = async (req: Request) => {
         : parseBoolean(body.removeProductsBanner)
           ? { productsBannerImage: null }
           : {}),
+      showcaseEnabled: parseBoolean(body.showcaseEnabled),
+      showcaseLeftLink: parseText(body.showcaseLeftLink),
+      showcaseVideoLink: parseText(body.showcaseVideoLink),
+      showcaseRightLink: parseText(body.showcaseRightLink),
+      ...fileField(files, body, "showcaseLeftImage"),
+      ...fileField(files, body, "showcaseVideo"),
+      ...fileField(files, body, "showcaseRightImage"),
     },
   });
 };

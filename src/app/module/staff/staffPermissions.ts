@@ -138,7 +138,13 @@ export const requiredStaffPermission = (path: string, method: string): Rule => {
     case "blocked-phones":
       return "order.update";
     case "wholesale-requests":
+      if (sub.startsWith("/report")) return "report.view";
       return isRead(method) ? "order.view" : "order.update";
+    case "wholesale-products":
+      // The request editor lists them too
+      if (isRead(method)) return ["order.view", "product.create", "product.update"];
+      if (method === "DELETE") return "product.delete";
+      return method === "POST" ? "product.create" : "product.update";
     case "pos":
       // Editing an order item picks products from the POS catalogue
       return sub.startsWith("/products") && isRead(method)

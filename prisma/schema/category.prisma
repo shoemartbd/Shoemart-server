@@ -12,6 +12,7 @@ model Category {
   subcategories Category[] @relation("CategoryToSubcategory")
 
   products Product[]
+  wholesaleProducts WholesaleProduct[]
   homeCategorySections HomeCategorySection[]
 
   createdAt DateTime @default(now())

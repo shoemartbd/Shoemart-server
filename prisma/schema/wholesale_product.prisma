@@ -1,0 +1,21 @@
+// Products shown on the /wholesale page "Product View", kept apart from the
+// shop catalogue. Added from Dashboard → Wholesale Products.
+model WholesaleProduct {
+  id         String   @id @default(uuid())
+  // Running number for the product code shown to buyers (WP-0001)
+  codeNo     Int      @unique @default(autoincrement())
+  name       String
+  // The subcategory when one is picked, else the main category
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+  images     String[]
+  // [{ name: "Black", image: "https://..." | null }]
+  colors     Json     @default("[]")
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([isActive, createdAt])
+  @@map("wholesale_products")
+}

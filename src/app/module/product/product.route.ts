@@ -15,8 +15,6 @@ const router = Router();
 // Public routes
 router.get("/", ProductController.getAllProducts);
 
-// Wholesale page gallery (must be declared before "/:id")
-router.get("/wholesale-gallery", ProductController.getWholesaleGallery);
 
 // Admin routes (must be declared before "/:id" to avoid being swallowed by the param route)
 router.get(

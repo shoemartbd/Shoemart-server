@@ -8,7 +8,7 @@ import { generateUniqueSku } from "../../utils/generateSku";
 import { ProductHighlight, ProductStatus } from "../../../generated/prisma/enums";
 import { ShopService } from "../shop/shop.service";
 import { queueProductIndexSync } from "../rag/ragSync";
-import { cached, invalidates, MINUTE } from "../../utils/memoryCache";
+import { invalidates } from "../../utils/memoryCache";
 
 const createProduct = async (payload: any) => {
   // 1. Verify category exists
@@ -358,46 +358,8 @@ const bulkDeleteProducts = async (productIds: string[]) => {
   return { deleted: count };
 };
 
-// Wholesale page "Product View": active products tagged WHOLESALE, only what
-// the gallery needs (photo, name, code, category). No prices are sent.
-const getWholesaleGallery = async () => {
-  const products = await prisma.product.findMany({
-    where: {
-      status: ProductStatus.ACTIVE,
-      highlights: { has: ProductHighlight.WHOLESALE },
-    },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      sku: true,
-      images: true,
-      variants: { select: { sku: true }, take: 1, orderBy: { createdAt: "asc" } },
-      category: {
-        select: { id: true, name: true, parent: { select: { id: true, name: true } } },
-      },
-    },
-  });
-
-  return products
-    .filter((p) => p.images.length > 0)
-    .map((p) => {
-      // Group under the top-level category so folders stay few
-      const folder = p.category.parent ?? p.category;
-      return {
-        id: p.id,
-        name: p.name,
-        // Product SKU, else the first variant's SKU, else a short id
-        code: p.sku || p.variants[0]?.sku || p.id.slice(0, 8).toUpperCase(),
-        image: p.images[0],
-        categoryId: folder.id,
-        categoryName: folder.name,
-      };
-    });
-};
-
 // Cached views that include product data
-const PRODUCT_VIEWS = ["home-sections", "flash-sale", "wholesale-gallery"];
+const PRODUCT_VIEWS = ["home-sections", "flash-sale"];
 
 // Keep the chatbot's copy of a product current (runs in the background)
 const withIndexSync =
@@ -428,5 +390,4 @@ export const ProductService = {
   bulkDeleteProducts: invalidates(PRODUCT_VIEWS, bulkDeleteProducts),
   getProductVariants,
   uploadVariantImage,
-  getWholesaleGallery: cached("wholesale-gallery", 5 * MINUTE, getWholesaleGallery),
 };

@@ -64,81 +64,147 @@ const getStatusCodeFromPrismaError = (errorCode: string): number => {
   return status.INTERNAL_SERVER_ERROR;
 };
 
-const formatErrorMeta = (meta?: Record<string, unknown>): string => {
-  if (!meta) return "";
+// Prisma error messages look like:
+//   Invalid `prisma.x.create()` invocation in
+//   E:\...\file.ts:161:34
+//     158 ...code frame...
+//   → 161 return prisma.x.create(
+//   The column `discount of relation wholesale_requests` does not exist ...
+// The useful reason is the LAST non-empty line, not the first.
+const extractPrismaReason = (message: string, fallback: string): string => {
+  const lines = message
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  return lines[lines.length - 1] || fallback;
+};
 
+type TPrismaDetails = {
+  model?: string;
+  table?: string;
+  fields: string[];
+  constraint?: string;
+};
+
+// Collect model / table / column / field names from meta (Prisma 7 driver
+// adapters put them under meta.driverAdapterError.cause) and from the message.
+const extractPrismaDetails = (
+  error: Prisma.PrismaClientKnownRequestError,
+): TPrismaDetails => {
+  const meta = (error.meta ?? {}) as Record<string, unknown>;
+  const cause = (meta.driverAdapterError as { cause?: Record<string, unknown> } | undefined)
+    ?.cause;
+
+  const details: TPrismaDetails = {
+    model: (meta.modelName ?? meta.model_name) as string | undefined,
+    table: meta.table as string | undefined,
+    fields: [],
+  };
+
+  const addFields = (value: unknown) => {
+    if (!value) return;
+    const list = Array.isArray(value) ? value : [value];
+    for (const v of list) {
+      const name = String(v);
+      if (name && !details.fields.includes(name)) details.fields.push(name);
+    }
+  };
+
+  addFields(meta.target);
+  addFields(meta.field_name);
+  addFields(meta.column_name);
+  addFields(meta.column);
+  addFields(meta.argument_name);
+  if (meta.constraint) details.constraint = String(meta.constraint);
+
+  if (cause) {
+    addFields(cause.column);
+    if (cause.table && !details.table) details.table = String(cause.table);
+    const constraint = cause.constraint as
+      | { fields?: string[]; index?: string }
+      | undefined;
+    addFields(constraint?.fields);
+    if (constraint?.index) details.constraint = constraint.index;
+  }
+
+  // "The column `discount of relation wholesale_requests` does not exist"
+  const columnMatch = error.message.match(/column `([^`]+?)(?: of relation ([^`]+))?` does not exist/i);
+  if (columnMatch) {
+    details.fields = details.fields.filter((f) => !f.includes(" of relation "));
+    addFields(columnMatch[1]);
+    if (columnMatch[2] && !details.table) details.table = columnMatch[2];
+  }
+
+  // "The table `public.xyz` does not exist"
+  const tableMatch = error.message.match(/table `([^`]+)` does not exist/i);
+  if (tableMatch && !details.table) details.table = tableMatch[1];
+
+  return details;
+};
+
+const describeLocation = (d: TPrismaDetails): string => {
   const parts: string[] = [];
+  if (d.fields.length) parts.push(`field: ${d.fields.join(", ")}`);
+  if (d.model) parts.push(`model: ${d.model}`);
+  if (d.table) parts.push(`table: ${d.table}`);
+  if (d.constraint) parts.push(`constraint: ${d.constraint}`);
+  return parts.join(" | ");
+};
 
-  if (meta.target) {
-    parts.push(`Field(s): ${String(meta.target)}`);
+const fieldList = (d: TPrismaDetails, fallback = "unknown field") =>
+  d.fields.length ? d.fields.map((f) => `\`${f}\``).join(", ") : fallback;
+
+// A short sentence that says what went wrong and where, per error code.
+const buildKnownErrorMessage = (
+  error: Prisma.PrismaClientKnownRequestError,
+  d: TPrismaDetails,
+  reason: string,
+): string => {
+  const where = d.model ? ` on ${d.model}` : "";
+
+  switch (error.code) {
+    case "P2002":
+      return `Duplicate value${where}: ${fieldList(d)} must be unique`;
+    case "P2003":
+      return `Related record not found${where} (foreign key ${fieldList(d, d.constraint ?? "unknown")})`;
+    case "P2011":
+      return `Required value missing${where}: ${fieldList(d)} cannot be null`;
+    case "P2000":
+      return `Value too long${where} for ${fieldList(d)}`;
+    case "P2025":
+      return `Record not found${where}: ${reason}`;
+    case "P2021":
+      return `Database table ${d.table ? `\`${d.table}\`` : ""} does not exist${where} — run pending migrations (prisma migrate deploy)`;
+    case "P2022":
+      return `Database column ${fieldList(d)}${d.table ? ` (table ${d.table})` : ""} does not exist${where} — run pending migrations (prisma migrate deploy)`;
+    default: {
+      const location = describeLocation(d);
+      return location ? `${reason} [${location}]` : reason;
+    }
   }
-
-  if (meta.field_name) {
-    parts.push(`Field: ${String(meta.field_name)}`);
-  }
-
-  if (meta.column_name) {
-    parts.push(`Column: ${String(meta.column_name)}`);
-  }
-
-  if (meta.table) {
-    parts.push(`Table: ${String(meta.table)}`);
-  }
-
-  if (meta.model_name) {
-    parts.push(`Model: ${String(meta.model_name)}`);
-  }
-
-  if (meta.relation_name) {
-    parts.push(`Relation: ${String(meta.relation_name)}`);
-  }
-
-  if (meta.constraint) {
-    parts.push(`Constraint: ${String(meta.constraint)}`);
-  }
-
-  if (meta.database_error) {
-    parts.push(`Database Error: ${String(meta.database_error)}`);
-  }
-
-  return parts.length > 0 ? parts.join(" |") : "";
 };
 
 export const handlePrismaClientKnownRequestError = (
   error: Prisma.PrismaClientKnownRequestError,
 ): TErrorResponse => {
   const statusCode = getStatusCodeFromPrismaError(error.code);
-  const metaInfo = formatErrorMeta(error.meta);
+  const reason = extractPrismaReason(
+    error.message,
+    "An error occurred with the database operation.",
+  );
+  const details = extractPrismaDetails(error);
+  const message = buildKnownErrorMessage(error, details, reason);
 
-  let cleanMessage = error.message;
+  const errorSources: TErrorSources[] = details.fields.length
+    ? details.fields.map((field) => ({ path: field, message }))
+    : [{ path: details.model ?? error.code, message }];
 
-  // Remove the "Invalid `prisma.user.create()` invocation: " part from the message for better readability
-  cleanMessage = cleanMessage.replace(/Invalid `.*?` invocation:?\s*/i, "");
-
-  // split by new line and take the first line as the main message, rest can be added to error sources
-
-  const lines = cleanMessage.split("\n").filter((line) => line.trim());
-  const mainMessage =
-    lines[0] || "An error occurred with the database operation.";
-
-  const errorSources: TErrorSources[] = [
-    {
-      path: error.code,
-      message: metaInfo ? `${mainMessage} | ${metaInfo}` : mainMessage,
-    },
-  ];
-
-  if (error.meta?.cause) {
-    errorSources.push({
-      path: "cause",
-      message: String(error.meta.cause),
-    });
-  }
+  errorSources.push({ path: "prismaCode", message: `${error.code}: ${reason}` });
 
   return {
     success: false,
     statusCode,
-    message: `Prisma Client Known Request Error: ${mainMessage}`,
+    message,
     errorSources,
   };
 };
@@ -146,67 +212,47 @@ export const handlePrismaClientKnownRequestError = (
 export const handlePrismaClientUnknownError = (
   error: Prisma.PrismaClientUnknownRequestError,
 ): TErrorResponse => {
-  let cleanMessage = error.message;
-
-  // Remove the "Invalid `prisma.user.create()` invocation: " part from the message for better readability
-  cleanMessage = cleanMessage.replace(/Invalid `.*?` invocation:?\s*/i, "");
-
-  const lines = cleanMessage.split("\n").filter((line) => line.trim());
-  const mainMessage =
-    lines[0] || "An unknown error occurred with the database operation.";
-
-  const errorSources: TErrorSources[] = [
-    {
-      path: "Unknown Prisma Error",
-      message: mainMessage,
-    },
-  ];
+  const reason = extractPrismaReason(
+    error.message,
+    "An unknown error occurred with the database operation.",
+  );
 
   return {
     success: false,
     statusCode: status.INTERNAL_SERVER_ERROR,
-    message: `Prisma Client Unknown Request Error: ${mainMessage}`,
-    errorSources,
+    message: `Database error: ${reason}`,
+    errorSources: [{ path: "database", message: reason }],
   };
 };
 
 export const handlePrismaClientValidationError = (
   error: Prisma.PrismaClientValidationError,
 ): TErrorResponse => {
-  let cleanMessage = error.message;
+  // e.g. "Argument `quantity`: Invalid value provided. Expected Int, provided String."
+  //      "Argument `name` is missing."
+  //      "Unknown argument `discount`. Available options are marked with ?."
+  const reason = extractPrismaReason(
+    error.message,
+    "Invalid data sent to the database.",
+  );
 
-  // Remove the "Invalid `prisma.user.create()` invocation: " part from the message for better readability
-  cleanMessage = cleanMessage.replace(/Invalid `.*?` invocation:?\s*/i, "");
+  const fieldMatch =
+    reason.match(/argument `([\w.]+)`/i) ??
+    error.message.match(/argument `([\w.]+)`/i) ??
+    error.message.match(/field `([\w.]+)`/i);
+  const field = fieldMatch?.[1];
 
-  const lines = cleanMessage.split("\n").filter((line) => line.trim());
+  const operation = error.message.match(/`(prisma\.\w+\.\w+)\(\)`/)?.[1];
 
-  const errorSources: TErrorSources[] = [];
-
-  // extract field name for field-specific validation errors
-  // Example message: "Argument `data.email`: Got invalid value `invalid-email` on prisma.user.create()"
-  const fieldMatch = cleanMessage.match(/Argument `(\w+)`/i);
-  const fieldName = fieldMatch ? fieldMatch[1] : "Unknown Field";
-
-  //main message
-
-  const mainMessage =
-    lines.find(
-      (line) =>
-        !line.includes("Argument") && !line.includes("→") && line.length > 10,
-    ) ||
-    lines[0] ||
-    "Invalid query parameters provided to the database operation.";
-
-  errorSources.push({
-    path: fieldName,
-    message: mainMessage,
-  });
+  const message = `Invalid database input${field ? ` for \`${field}\`` : ""}${
+    operation ? ` in ${operation}()` : ""
+  }: ${reason}`;
 
   return {
     success: false,
     statusCode: status.BAD_REQUEST,
-    message: `Prisma Client Validation Error: ${mainMessage}`,
-    errorSources,
+    message,
+    errorSources: [{ path: field ?? "unknown", message: reason }],
   };
 };
 
@@ -217,14 +263,10 @@ export const handlerPrismaClientInitializationError = (
     ? getStatusCodeFromPrismaError(error.errorCode)
     : status.SERVICE_UNAVAILABLE;
 
-  const cleanMessage = error.message;
-
-  cleanMessage.replace(/Invalid `.*?` invocation:?\s*/i, "");
-
-  const lines = cleanMessage.split("\n").filter((line) => line.trim());
-
-  const mainMessage =
-    lines[0] || "An error occurred while initializing the Prisma Client.";
+  const mainMessage = extractPrismaReason(
+    error.message,
+    "An error occurred while initializing the Prisma Client.",
+  );
 
   const errorSources: TErrorSources[] = [
     {

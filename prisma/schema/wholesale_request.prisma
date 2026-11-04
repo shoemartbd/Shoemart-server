@@ -1,31 +1,40 @@
 enum WholesaleRequestStatus {
   NEW
   CONTACTED
+  COMPLETED // sale complete: counted in the wholesale report
   CLOSED
 }
 
 // Bulk / B2B enquiries sent from the public /wholesale landing page.
 // `phone` is normalised to the 11-digit local form, e.g. 01712345678.
 model WholesaleRequest {
-  id           String                 @id @default(uuid())
-  name         String
-  phone        String
-  email        String?
-  businessName String?
-  businessType String? // Retail shop, online seller, corporate, ...
-  location     String?
-  categories   String[] // category names the buyer is interested in
-  quantity     String? // estimated order size, e.g. "100-500 pairs"
-  // Products picked in the "Product View" gallery, saved as a snapshot
-  // [{ productId, code, name, image }] so the request reads the same even if
-  // the product changes later
-  products     Json                   @default("[]")
-  message      String?
-  status       WholesaleRequestStatus @default(NEW)
-  adminNote    String?
-  createdAt    DateTime               @default(now())
-  updatedAt    DateTime               @updatedAt
+  id             String                 @id @default(uuid())
+  // Running number printed on the invoice (WS-0001)
+  invoiceNo      Int                    @unique @default(autoincrement())
+  name           String
+  phone          String
+  email          String?
+  businessName   String?
+  businessType   String? // Retail shop, online seller, corporate, ...
+  location       String?
+  categories     String[] // category names the buyer is interested in
+  quantity       String? // legacy: overall order size from the old form, e.g. "100-500 pairs"
+  // Order lines, saved as a snapshot so the request reads the same even if
+  // the product changes later:
+  // [{ productId, code, name, image, quantity, unitPrice, costPrice }]
+  // The buyer picks products + pairs; the admin sets prices and can edit lines.
+  products       Json                   @default("[]")
+  discount       Float                  @default(0)
+  deliveryCharge Float                  @default(0)
+  paidAmount     Float                  @default(0)
+  message        String?
+  status         WholesaleRequestStatus @default(NEW)
+  completedAt    DateTime? // when it was marked sale complete (report date)
+  adminNote      String?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
 
   @@index([status, createdAt])
+  @@index([status, completedAt])
   @@map("wholesale_requests")
 }
