@@ -1,7 +1,11 @@
 import status from "http-status";
 import { prisma } from "../../lib/prisma";
 import AppError from "../../errorHelpers/AppError";
-import { WholesaleRequestStatus } from "../../../generated/prisma/enums";
+import {
+  ProductHighlight,
+  ProductStatus,
+  WholesaleRequestStatus,
+} from "../../../generated/prisma/enums";
 import { normalizePhone } from "../blocked-phone/blockedPhone.service";
 
 export interface ICreateWholesaleRequest {
@@ -13,10 +17,48 @@ export interface ICreateWholesaleRequest {
   location?: string;
   categories?: string[];
   quantity?: string;
+  productIds?: string[];
   message?: string;
 }
 
 const optional = (value?: string) => value?.trim() || null;
+
+// Picked gallery products, looked up here (never trusted from the browser) and
+// limited to what the gallery shows: active products tagged Wholesale
+const snapshotProducts = async (ids: string[] = []) => {
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return [];
+
+  const products = await prisma.product.findMany({
+    where: {
+      id: { in: unique },
+      status: ProductStatus.ACTIVE,
+      highlights: { has: ProductHighlight.WHOLESALE },
+    },
+    select: {
+      id: true,
+      name: true,
+      sku: true,
+      images: true,
+      variants: { select: { sku: true }, take: 1, orderBy: { createdAt: "asc" } },
+    },
+  });
+  const byId = new Map(products.map((p) => [p.id, p]));
+
+  // Keep the order the buyer picked them in
+  return unique.flatMap((id) => {
+    const p = byId.get(id);
+    if (!p) return [];
+    return [
+      {
+        productId: p.id,
+        code: p.sku || p.variants[0]?.sku || p.id.slice(0, 8).toUpperCase(),
+        name: p.name,
+        image: p.images[0] ?? null,
+      },
+    ];
+  });
+};
 
 // From the public landing page form
 const createRequest = async (payload: ICreateWholesaleRequest) => {
@@ -35,6 +77,7 @@ const createRequest = async (payload: ICreateWholesaleRequest) => {
       location: optional(payload.location),
       categories: (payload.categories ?? []).map((c) => c.trim()).filter(Boolean),
       quantity: optional(payload.quantity),
+      products: await snapshotProducts(payload.productIds),
       message: optional(payload.message),
     },
   });

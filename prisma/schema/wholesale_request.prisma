@@ -16,6 +16,10 @@ model WholesaleRequest {
   location     String?
   categories   String[] // category names the buyer is interested in
   quantity     String? // estimated order size, e.g. "100-500 pairs"
+  // Products picked in the "Product View" gallery, saved as a snapshot
+  // [{ productId, code, name, image }] so the request reads the same even if
+  // the product changes later
+  products     Json                   @default("[]")
   message      String?
   status       WholesaleRequestStatus @default(NEW)
   adminNote    String?

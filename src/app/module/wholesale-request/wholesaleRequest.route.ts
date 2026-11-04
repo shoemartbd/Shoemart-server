@@ -17,6 +17,7 @@ const createZodSchema = z.object({
   location: z.string().trim().max(150).optional(),
   categories: z.array(z.string().trim().max(80)).max(30).optional(),
   quantity: z.string().trim().max(60).optional(),
+  productIds: z.array(z.string().trim().min(1).max(64)).max(100).optional(),
   message: z.string().trim().max(2000).optional(),
 });
 
