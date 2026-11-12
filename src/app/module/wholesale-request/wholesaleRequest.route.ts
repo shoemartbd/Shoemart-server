@@ -1,7 +1,7 @@
 import { Request, Response, Router } from "express";
 import { z } from "zod";
 import { Role, WholesaleRequestStatus } from "../../../generated/prisma/enums";
-import { checkAuth } from "../../middleware/checkAuth";
+import { checkAuth, optionalAuth } from "../../middleware/checkAuth";
 import { validateRequest } from "../../middleware/validateRequest";
 import { wholesaleRequestRateLimiter } from "../../middleware/rateLimiter";
 import { catchAsync } from "../../shared/catchAsync";
@@ -50,6 +50,7 @@ const updateZodSchema = z.object({
     .max(200)
     .optional(),
   deliveryCharge: amount.optional(),
+  userId: z.string().trim().max(64).nullable().optional(),
   paidAmount: amount.optional(),
 });
 
@@ -59,9 +60,10 @@ const router = Router();
 router.post(
   "/",
   wholesaleRequestRateLimiter,
+  optionalAuth(),
   validateRequest(createZodSchema),
   catchAsync(async (req: Request, res: Response) => {
-    const data = await WholesaleRequestService.createRequest(req.body);
+    const data = await WholesaleRequestService.createRequest(req.body, req.user);
     sendResponse(res, {
       httpStatusCode: 201,
       success: true,
@@ -80,6 +82,26 @@ router.get(
       searchTerm: req.query.searchTerm as string,
     });
     sendResponse(res, { httpStatusCode: 200, success: true, message: "Wholesale requests retrieved", data });
+  }),
+);
+
+// Wholesaler dashboard: the logged-in wholesaler's own requests
+router.get(
+  "/my",
+  checkAuth(Role.WHOLESALER),
+  catchAsync(async (req: Request, res: Response) => {
+    const data = await WholesaleRequestService.getMyRequests(req.user.userId);
+    sendResponse(res, { httpStatusCode: 200, success: true, message: "Your wholesale orders", data });
+  }),
+);
+
+// Wholesaler accounts, for linking a request to one
+router.get(
+  "/wholesalers",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  catchAsync(async (_req: Request, res: Response) => {
+    const data = await WholesaleRequestService.getWholesalers();
+    sendResponse(res, { httpStatusCode: 200, success: true, message: "Wholesalers retrieved", data });
   }),
 );
 

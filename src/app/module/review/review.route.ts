@@ -13,20 +13,20 @@ router.get("/product/:productId", ReviewController.getProductReviews);
 
 router.get(
   "/my-reviews",
-  checkAuth(Role.USER, Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.USER, Role.WHOLESALER, Role.ADMIN, Role.SUPER_ADMIN),
   ReviewController.getMyReviews,
 );
 
 router.post(
   "/",
-  checkAuth(Role.USER, Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.USER, Role.WHOLESALER, Role.ADMIN, Role.SUPER_ADMIN),
   validateRequest(createReviewZodSchema),
   ReviewController.createReview,
 );
 
 router.delete(
   "/:id",
-  checkAuth(Role.USER, Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.USER, Role.WHOLESALER, Role.ADMIN, Role.SUPER_ADMIN),
   ReviewController.deleteReview,
 );
 

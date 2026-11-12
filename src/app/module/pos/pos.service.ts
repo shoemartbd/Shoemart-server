@@ -8,25 +8,76 @@ import { generateOrderNumber } from "../../utils/generateOrderNumber";
 
 const COMMISSION_RATE = 0.1; // 10% commission
 
+// POS catalogue search.
+// - A scanned or typed barcode (product SKU or variant SKU, exact match) comes
+//   back first, flagged with `scanMatch` so the POS can add it straight away.
+// - Otherwise every word typed must appear somewhere in the product (name,
+//   SKU, a variant SKU, category or tags), in any order: "men loafer blk"
+//   finds "Men's Leather Loafer" with SKU "BLK-...".
 const getShopProducts = async (shopId: string, queryParams: IQueryParams) => {
-  const productQuery = new QueryBuilder(prisma.product, queryParams, {
-    searchableFields: ["name", "slug"], // Can add barcode if added to schema
-    filterableFields: ["status"],
-  })
-    .search()
-    .filter()
-    .sort()
-    .paginate()
-    .include({
-      variants: true,
-      category: true,
-    })
-    .where({
-      shopId,
-      status: ProductStatus.ACTIVE,
-    });
+  const term = String(queryParams.searchTerm ?? "").trim();
+  const limit = Math.min(Math.max(Number(queryParams.limit) || 50, 1), 100);
+  const page = Math.max(Number(queryParams.page) || 1, 1);
+  const base = { shopId, status: ProductStatus.ACTIVE };
+  const include = { variants: true, category: true };
 
-  return await productQuery.execute();
+  const insensitive = "insensitive" as const;
+  const words = term.split(/\s+/).filter(Boolean).slice(0, 8);
+
+  // 1) Exact barcode
+  const scanned = term
+    ? await prisma.product.findMany({
+        where: {
+          ...base,
+          OR: [
+            { sku: { equals: term, mode: insensitive } },
+            { variants: { some: { sku: { equals: term, mode: insensitive } } } },
+          ],
+        },
+        include,
+        take: 10,
+      })
+    : [];
+  const scannedWithMatch = scanned.map((p) => {
+    const variant = p.variants.find((v) => v.sku?.toLowerCase() === term.toLowerCase());
+    return { ...p, scanMatch: { variantId: variant?.id ?? null } };
+  });
+
+  // 2) Every word somewhere in the product
+  const where = {
+    ...base,
+    ...(words.length > 0 && {
+      AND: words.map((w) => ({
+        OR: [
+          { name: { contains: w, mode: insensitive } },
+          { sku: { contains: w, mode: insensitive } },
+          { variants: { some: { sku: { contains: w, mode: insensitive } } } },
+          { variants: { some: { combination: { contains: w, mode: insensitive } } } },
+          { category: { name: { contains: w, mode: insensitive } } },
+          { tags: { has: w.toLowerCase() } },
+        ],
+      })),
+    }),
+    ...(scanned.length > 0 && { id: { notIn: scanned.map((p) => p.id) } }),
+  };
+
+  const [total, rest] = await Promise.all([
+    prisma.product.count({ where }),
+    prisma.product.findMany({
+      where,
+      include,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+  ]);
+
+  const data = page === 1 ? [...scannedWithMatch, ...rest] : rest;
+  const all = total + scanned.length;
+  return {
+    data,
+    meta: { page, limit, total: all, totalPages: Math.ceil(all / limit) },
+  };
 };
 
 const getPosCart = async (shopId: string) => {

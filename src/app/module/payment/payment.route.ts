@@ -8,7 +8,7 @@ const router = Router();
 
 router.post(
   "/sslcommerz/initiate",
-  checkAuth(Role.USER, Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.USER, Role.WHOLESALER, Role.ADMIN, Role.SUPER_ADMIN),
   PaymentController.initiateSslcommerzPayment,
 );
 
@@ -40,7 +40,7 @@ router.post("/sslcommerz/ipn", PaymentController.handleIpn);
 // bKash Tokenized Checkout
 router.post(
   "/bkash/initiate",
-  checkAuth(Role.USER, Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.USER, Role.WHOLESALER, Role.ADMIN, Role.SUPER_ADMIN),
   PaymentController.initiateBkashPayment,
 );
 

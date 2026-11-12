@@ -2,6 +2,7 @@ enum Role {
   SUPER_ADMIN
   ADMIN
   USER
+  WHOLESALER // a customer who also sees their wholesale orders
 }
 
 enum UserStatus {

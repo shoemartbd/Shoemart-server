@@ -6,6 +6,7 @@ import { HeroMediaType, HeroSliderType } from "../../../generated/prisma/enums";
 import { cached, invalidates, MINUTE } from "../../utils/memoryCache";
 
 const MAX_BANNERS = 2;
+const MAX_WHOLESALE = 5;
 
 const createHeroSlider = async (req: Request) => {
   const file = req.file as any;
@@ -20,17 +21,31 @@ const createHeroSlider = async (req: Request) => {
   const type: HeroSliderType =
     req.body?.type === HeroSliderType.BANNER
       ? HeroSliderType.BANNER
-      : HeroSliderType.SLIDE;
+      : req.body?.type === HeroSliderType.WHOLESALE
+        ? HeroSliderType.WHOLESALE
+        : HeroSliderType.SLIDE;
   const link =
     typeof req.body?.link === "string" && req.body.link.trim()
       ? req.body.link.trim()
       : null;
 
-  if (type === HeroSliderType.BANNER && mediaType === HeroMediaType.VIDEO) {
+  if (type !== HeroSliderType.SLIDE && mediaType === HeroMediaType.VIDEO) {
     throw new AppError(
       status.BAD_REQUEST,
-      "Offer banners must be images. Videos can only be used as slides.",
+      "Banners must be images. Videos can only be used as slides.",
     );
+  }
+
+  if (type === HeroSliderType.WHOLESALE) {
+    const count = await prisma.heroSlider.count({
+      where: { type: HeroSliderType.WHOLESALE },
+    });
+    if (count >= MAX_WHOLESALE) {
+      throw new AppError(
+        status.BAD_REQUEST,
+        `Only ${MAX_WHOLESALE} wholesale banners are allowed. Delete one first.`,
+      );
+    }
   }
 
   if (type === HeroSliderType.BANNER) {

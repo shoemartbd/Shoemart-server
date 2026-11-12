@@ -31,10 +31,14 @@ model WholesaleRequest {
   status         WholesaleRequestStatus @default(NEW)
   completedAt    DateTime? // when it was marked sale complete (report date)
   adminNote      String?
+  // Wholesaler account this request belongs to (they see it in their dashboard)
+  userId         String?
+  user           User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
 
   @@index([status, createdAt])
   @@index([status, completedAt])
+  @@index([userId])
   @@map("wholesale_requests")
 }

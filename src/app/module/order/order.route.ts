@@ -22,7 +22,7 @@ const router = Router();
 // Create order & Get My orders (Any user)
 router.post(
   "/",
-  checkAuth(Role.USER, Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.USER, Role.WHOLESALER, Role.ADMIN, Role.SUPER_ADMIN),
   validateRequest(createOrderZodSchema),
   OrderController.createOrder,
 );
@@ -37,7 +37,7 @@ router.post(
 
 router.get(
   "/my-orders",
-  checkAuth(Role.USER, Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.USER, Role.WHOLESALER, Role.ADMIN, Role.SUPER_ADMIN),
   OrderController.getMyOrders,
 );
 
@@ -144,14 +144,14 @@ router.post(
 // Get single order detail
 router.get(
   "/:id",
-  checkAuth(Role.USER, Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.USER, Role.WHOLESALER, Role.ADMIN, Role.SUPER_ADMIN),
   OrderController.getOrderById,
 );
 
 // Courier fraud check (based on the order's phone number)
 router.get(
   "/:id/fraud-check",
-  checkAuth(Role.USER, Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.USER, Role.WHOLESALER, Role.ADMIN, Role.SUPER_ADMIN),
   OrderController.checkOrderFraud,
 );
 

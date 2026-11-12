@@ -1,6 +1,7 @@
 enum HeroSliderType {
   SLIDE // rotates in the main carousel
   BANNER // static offer banner beside the carousel (max 2)
+  WHOLESALE // hero photo on the /wholesale page (rotates if several)
 }
 
 enum HeroMediaType {

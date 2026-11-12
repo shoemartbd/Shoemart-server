@@ -8,7 +8,7 @@ import { addToCartZodSchema, updateCartItemZodSchema } from "./cart.validation";
 const router = Router();
 
 // All cart routes require authentication
-router.use(checkAuth(Role.USER, Role.ADMIN, Role.SUPER_ADMIN));
+router.use(checkAuth(Role.USER, Role.WHOLESALER, Role.ADMIN, Role.SUPER_ADMIN));
 
 router.get("/", CartController.getCart);
 

@@ -273,7 +273,7 @@ const changeUserRole = async (
           },
         });
       }
-    } else if (role === Role.USER) {
+    } else if (role === Role.USER || role === Role.WHOLESALER) {
       if (userToChangeRole.admin) {
         await tx.admin.delete({
           where: { userId: userToChangeRole.id },

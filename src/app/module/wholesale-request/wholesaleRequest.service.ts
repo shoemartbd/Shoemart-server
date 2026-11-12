@@ -1,7 +1,7 @@
 import status from "http-status";
 import { prisma } from "../../lib/prisma";
 import AppError from "../../errorHelpers/AppError";
-import { WholesaleRequestStatus } from "../../../generated/prisma/enums";
+import { Role, WholesaleRequestStatus } from "../../../generated/prisma/enums";
 import { normalizePhone } from "../blocked-phone/blockedPhone.service";
 import { sumByPeriod } from "../../utils/periodSummary";
 import {
@@ -47,6 +47,8 @@ export interface IUpdateWholesaleRequest {
   }[];
   deliveryCharge?: number;
   paidAmount?: number;
+  // Wholesaler account the request belongs to; null unlinks it
+  userId?: string | null;
 }
 
 const optional = (value?: string) => value?.trim() || null;
@@ -159,8 +161,12 @@ const snapshotRequestedProducts = async (
   return [...lines.values()];
 };
 
-// From the public landing page form
-const createRequest = async (payload: ICreateWholesaleRequest) => {
+// From the public landing page form. A logged-in wholesaler's request is
+// linked to their account so it shows in their dashboard.
+const createRequest = async (
+  payload: ICreateWholesaleRequest,
+  requester?: { userId: string; role: string },
+) => {
   const phone = normalizePhone(payload.phone);
   if (!/^01\d{9}$/.test(phone)) {
     throw new AppError(status.BAD_REQUEST, "Enter a valid 11-digit mobile number (01XXXXXXXXX)");
@@ -179,9 +185,12 @@ const createRequest = async (payload: ICreateWholesaleRequest) => {
       categories: (payload.categories ?? []).map((c) => c.trim()).filter(Boolean),
       products: lines as object[],
       message: optional(payload.message),
+      ...(requester?.role === Role.WHOLESALER && { userId: requester.userId }),
     },
   });
 };
+
+const accountSelect = { select: { id: true, name: true, email: true } };
 
 type RequestRow = { products: unknown; deliveryCharge: number; paidAmount: number };
 
@@ -230,6 +239,7 @@ const getRequests = async (query: { status?: string; searchTerm?: string }) => {
         }),
       },
       orderBy: { createdAt: "desc" },
+      include: { user: accountSelect },
     }),
     prisma.wholesaleRequest.groupBy({ by: ["status"], _count: true }),
   ]);
@@ -309,6 +319,16 @@ const updateRequest = async (id: string, payload: IUpdateWholesaleRequest) => {
     ? await buildAdminLines(readLines(existing.products), payload.items)
     : readLines(existing.products);
 
+  if (payload.userId) {
+    const account = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { role: true, isDeleted: true },
+    });
+    if (!account || account.isDeleted || account.role !== Role.WHOLESALER) {
+      throw new AppError(status.BAD_REQUEST, "Choose a wholesaler account");
+    }
+  }
+
   const nextStatus = payload.status ?? existing.status;
   if (nextStatus === WholesaleRequestStatus.COMPLETED && lines.length === 0) {
     throw new AppError(status.BAD_REQUEST, "Add at least one product before completing the sale");
@@ -333,7 +353,9 @@ const updateRequest = async (id: string, payload: IUpdateWholesaleRequest) => {
         deliveryCharge: round2(payload.deliveryCharge),
       }),
       ...(payload.paidAmount !== undefined && { paidAmount: round2(payload.paidAmount) }),
+      ...(payload.userId !== undefined && { userId: payload.userId || null }),
     },
+    include: { user: accountSelect },
   });
   return (await withTotals([updated]))[0];
 };
@@ -441,7 +463,54 @@ const getReport = async (range: { startDate?: string; endDate?: string }) => {
   };
 };
 
+// Admin: wholesaler accounts a request can be linked to
+const getWholesalers = async () =>
+  prisma.user.findMany({
+    where: { role: Role.WHOLESALER, isDeleted: false },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, email: true },
+  });
+
+// Wholesaler dashboard: their own requests, without internal figures
+// (cost, profit, admin note)
+const getMyRequests = async (userId: string) => {
+  const rows = await prisma.wholesaleRequest.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map((r) => {
+    const t = totalsOf(r);
+    return {
+      id: r.id,
+      invoiceNo: r.invoiceNo,
+      name: r.name,
+      phone: r.phone,
+      email: r.email,
+      businessName: r.businessName,
+      location: r.location,
+      status: r.status,
+      message: r.message,
+      products: readLines(r.products).map((l) => ({
+        productId: l.productId,
+        code: l.code,
+        name: l.name,
+        image: l.image,
+        color: l.color,
+        quantity: l.quantity,
+        unitPrice: l.unitPrice,
+      })),
+      deliveryCharge: r.deliveryCharge,
+      paidAmount: r.paidAmount,
+      totals: { pairs: t.pairs, subtotal: t.subtotal, total: t.total, due: t.due },
+      completedAt: r.completedAt,
+      createdAt: r.createdAt,
+    };
+  });
+};
+
 export const WholesaleRequestService = {
+  getWholesalers,
+  getMyRequests,
   createRequest,
   getRequests,
   updateRequest,

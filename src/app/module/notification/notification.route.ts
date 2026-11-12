@@ -7,19 +7,19 @@ const router = Router();
 
 router.get(
   "/",
-  checkAuth(Role.USER, Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.USER, Role.WHOLESALER, Role.ADMIN, Role.SUPER_ADMIN),
   NotificationController.getMyNotifications,
 );
 
 router.patch(
   "/read-all",
-  checkAuth(Role.USER, Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.USER, Role.WHOLESALER, Role.ADMIN, Role.SUPER_ADMIN),
   NotificationController.markAllAsRead,
 );
 
 router.patch(
   "/:id/read",
-  checkAuth(Role.USER, Role.ADMIN, Role.SUPER_ADMIN),
+  checkAuth(Role.USER, Role.WHOLESALER, Role.ADMIN, Role.SUPER_ADMIN),
   NotificationController.markAsRead,
 );
 

@@ -12,18 +12,18 @@ router.post("/login", AuthController.loginUser);
 
 router.get(
   "/me",
-  checkAuth(Role.SUPER_ADMIN, Role.ADMIN, Role.USER),
+  checkAuth(Role.SUPER_ADMIN, Role.ADMIN, Role.USER, Role.WHOLESALER),
   AuthController.getMe,
 );
 router.post("/refresh-token", AuthController.getNewToken);
 router.post(
   "/change-password",
-  checkAuth(Role.SUPER_ADMIN, Role.ADMIN, Role.USER),
+  checkAuth(Role.SUPER_ADMIN, Role.ADMIN, Role.USER, Role.WHOLESALER),
   AuthController.changePassword,
 );
 router.post(
   "/logout",
-  checkAuth(Role.SUPER_ADMIN, Role.ADMIN, Role.USER),
+  checkAuth(Role.SUPER_ADMIN, Role.ADMIN, Role.USER, Role.WHOLESALER),
   AuthController.logoutUser,
 );
 
@@ -35,7 +35,7 @@ router.post("/forget-password", passwordResetRateLimiter, AuthController.forgetP
 router.post("/reset-password", AuthController.resetPassword);
 router.patch(
   "/update-profile",
-  checkAuth(Role.SUPER_ADMIN, Role.ADMIN, Role.USER),
+  checkAuth(Role.SUPER_ADMIN, Role.ADMIN, Role.USER, Role.WHOLESALER),
   multerUpload.single("file"),
   AuthController.updateProfile,
 );

@@ -13,7 +13,7 @@ router.get(
 
 router.get(
   "/user",
-  checkAuth(Role.USER),
+  checkAuth(Role.USER, Role.WHOLESALER),
   AnalyticsController.getUserAnalytics,
 );
 

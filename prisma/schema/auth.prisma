@@ -27,6 +27,7 @@ model User {
   reviews               Review[]
   notifications         Notification[]
   processedOrderReturns OrderReturn[]  @relation("OrderReturnProcessedBy")
+  wholesaleRequests     WholesaleRequest[]
 
   @@unique([email])
   @@index([role])
