@@ -508,7 +508,113 @@ const getMyRequests = async (userId: string) => {
   });
 };
 
+// Report per wholesaler account: every completed sale linked to them (what,
+// when, how much, paid, due) plus totals. Dated by completion, optionally
+// limited to a date range. Accounts with no sales are listed too.
+// "yyyy-mm-dd" from the dashboard is a Bangladesh calendar day, whatever
+// timezone the server runs in
+const BD_OFFSET = "+06:00";
+const isDay = (v?: string) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+const dayStart = (d: string) => new Date(`${d}T00:00:00.000${BD_OFFSET}`);
+const dayEnd = (d: string) => new Date(`${d}T23:59:59.999${BD_OFFSET}`);
+
+const getWholesalerReport = async (range: { startDate?: string; endDate?: string }) => {
+  let start = isDay(range.startDate) ? range.startDate! : undefined;
+  let end = isDay(range.endDate) ? range.endDate! : undefined;
+  if (start && end && start > end) [start, end] = [end, start];
+  const completedAt: { gte?: Date; lte?: Date } = {};
+  if (start) completedAt.gte = dayStart(start);
+  if (end) completedAt.lte = dayEnd(end);
+  const hasRange = Boolean(start || end);
+
+  const accounts = await prisma.user.findMany({
+    where: { role: Role.WHOLESALER, isDeleted: false },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, email: true, status: true, createdAt: true },
+  });
+  const ids = accounts.map((a) => a.id);
+
+  const [sales, open] = await Promise.all([
+    prisma.wholesaleRequest.findMany({
+      where: {
+        userId: { in: ids },
+        status: WholesaleRequestStatus.COMPLETED,
+        ...(hasRange && { completedAt }),
+      },
+      orderBy: { completedAt: "desc" },
+    }),
+    prisma.wholesaleRequest.groupBy({
+      by: ["userId"],
+      where: {
+        userId: { in: ids },
+        status: { in: [WholesaleRequestStatus.NEW, WholesaleRequestStatus.CONTACTED] },
+        // Open requests sent in the same period
+        ...(hasRange && { createdAt: completedAt }),
+      },
+      _count: true,
+    }),
+  ]);
+
+  const rows = accounts.map((a) => {
+    const orders = sales
+      .filter((r) => r.userId === a.id)
+      .map((r) => {
+        const t = totalsOf(r);
+        return {
+          id: r.id,
+          invoiceNo: r.invoiceNo,
+          completedAt: r.completedAt ?? r.updatedAt,
+          name: r.name,
+          phone: r.phone,
+          email: r.email,
+          businessName: r.businessName,
+          location: r.location,
+          products: readLines(r.products),
+          deliveryCharge: r.deliveryCharge,
+          paidAmount: r.paidAmount,
+          ...t,
+        };
+      });
+    const sum = (pick: (o: (typeof orders)[number]) => number) =>
+      round2(orders.reduce((s, o) => s + pick(o), 0));
+    return {
+      ...a,
+      businessName: orders.find((o) => o.businessName)?.businessName ?? null,
+      phone: orders[0]?.phone ?? null,
+      openRequests: open.find((o) => o.userId === a.id)?._count ?? 0,
+      lastOrderAt: orders[0]?.completedAt ?? null,
+      summary: {
+        orders: orders.length,
+        pairs: sum((o) => o.pairs),
+        total: sum((o) => o.total),
+        paid: sum((o) => o.paidAmount),
+        due: sum((o) => o.due),
+        profit: sum((o) => o.profit),
+      },
+      orders,
+    };
+  });
+
+  const total = (pick: (r: (typeof rows)[number]) => number) =>
+    round2(rows.reduce((s, r) => s + pick(r), 0));
+  return {
+    range: { startDate: start ?? null, endDate: end ?? null },
+    wholesalers: rows,
+    totals: {
+      wholesalers: rows.length,
+      active: rows.filter((r) => r.summary.orders > 0).length,
+      orders: total((r) => r.summary.orders),
+      pairs: total((r) => r.summary.pairs),
+      total: total((r) => r.summary.total),
+      paid: total((r) => r.summary.paid),
+      due: total((r) => r.summary.due),
+      profit: total((r) => r.summary.profit),
+    },
+  };
+};
+
 export const WholesaleRequestService = {
+  getWholesalerReport,
   getWholesalers,
   getMyRequests,
   createRequest,

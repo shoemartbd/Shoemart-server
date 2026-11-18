@@ -3,6 +3,10 @@ model Order {
   orderSeq      Int           @default(autoincrement())
   orderNumber   String?       @unique
   orderType     OrderType     @default(ONLINE)
+  // Phone OTP: true = confirmed by SMS code, false = the SMS could not be
+  // sent so the order was taken unverified (call to confirm), null = no OTP
+  // was asked (logged-in customer, POS, or OTP switched off)
+  phoneVerified Boolean?
   totalAmount   Float
   paymentStatus PaymentStatus @default(PENDING)
   paymentMethod String? // cash, card, mfs, other

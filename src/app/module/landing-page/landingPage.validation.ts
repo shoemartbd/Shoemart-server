@@ -87,4 +87,5 @@ export const createGuestLandingOrderZodSchema = z.object({
   checkoutSessionToken: z.string().optional(),
   notes: z.string().trim().max(1000).optional(),
   paymentMethod: z.enum(["COD", "BKASH"]).optional(),
+  phoneVerificationToken: z.string().max(2000).optional().nullable(),
 });

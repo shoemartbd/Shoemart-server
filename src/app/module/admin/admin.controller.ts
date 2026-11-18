@@ -16,13 +16,14 @@ const getAllAdmins = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAllUsers = catchAsync(async (req: Request, res: Response) => {
-  const result = await AdminService.getAllUsers();
+  const result = await AdminService.getAllUsers(req.query as Record<string, unknown>);
 
   sendResponse(res, {
     httpStatusCode: status.OK,
     success: true,
     message: "Users fetched successfully",
-    data: result,
+    data: result.data,
+    meta: result.meta,
   });
 });
 

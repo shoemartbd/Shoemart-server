@@ -1,4 +1,5 @@
 import status from "http-status";
+import { PhoneOtpService } from "../phone-otp/phoneOtp.service";
 import { prisma } from "../../lib/prisma";
 import { IQueryParams } from "../../interfaces/query.interface";
 import { QueryBuilder } from "../../utils/QueryBuilder";
@@ -151,6 +152,7 @@ const createGuestOrder = async (
     checkoutSessionToken?: string;
     notes?: string;
     paymentMethod?: "COD" | "BKASH";
+    phoneVerificationToken?: string | null;
   },
   userId: string | null = null,
 ) => {
@@ -161,6 +163,10 @@ const createGuestOrder = async (
   }
 
   if (!userId) await OrderService.assertGuestCheckoutEnabled();
+  // Guests confirm their number by SMS code when phone OTP is on
+  const phoneVerified = userId
+    ? null
+    : await PhoneOtpService.resolveForOrder(payload.phone, payload.phoneVerificationToken);
 
   const order = await OrderService.createOrder(userId, {
     fullName: payload.fullName,
@@ -173,6 +179,7 @@ const createGuestOrder = async (
     checkoutSessionToken: payload.checkoutSessionToken,
     notes: payload.notes || undefined,
     paymentMethod: payload.paymentMethod ?? "COD",
+    phoneVerified,
     items: [
       {
         productId: landingPage.productId,

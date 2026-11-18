@@ -23,6 +23,8 @@ export const createOrderZodSchema = z.object({
   shippingFee: z.number().optional(),
   checkoutSessionToken: z.string().optional(),
   paymentMethod: z.enum(["COD", "SSLCOMMERZ", "BKASH"]).optional(),
+  // Phone OTP token from /phone-otp/verify (guest orders, when OTP is on)
+  phoneVerificationToken: z.string().max(2000).optional().nullable(),
 });
 
 // Checkout without an account: there is no cart to fall back on, so the

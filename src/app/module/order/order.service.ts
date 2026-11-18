@@ -1,4 +1,5 @@
 import status from "http-status";
+import { PhoneOtpService } from "../phone-otp/phoneOtp.service";
 import { BlockedPhoneService, normalizePhone } from "../blocked-phone/blockedPhone.service";
 import { prisma } from "../../lib/prisma";
 import AppError from "../../errorHelpers/AppError";
@@ -35,6 +36,9 @@ const createOrder = async (
     orderType?: OrderType;
     checkoutSessionToken?: string;
     paymentMethod?: string;
+    // Phone OTP result for guest orders (see PhoneOtpService.resolveForOrder)
+    phoneVerified?: boolean | null;
+    phoneVerificationToken?: string | null;
   },
 ) => {
   // Numbers marked as fraud can't order (storefront and landing pages)
@@ -166,6 +170,7 @@ const createOrder = async (
         notes: payload.notes,
         orderStatus: OrderStatus.PENDING,
         paymentMethod: payload.paymentMethod || "COD",
+        phoneVerified: payload.phoneVerified ?? null,
       },
     });
 
@@ -862,7 +867,12 @@ const assertGuestCheckoutEnabled = async () => {
 
 const createGuestOrder = async (payload: Parameters<typeof createOrder>[1]) => {
   await assertGuestCheckoutEnabled();
-  return createOrder(null, { ...payload, orderType: OrderType.ONLINE });
+  // Phone OTP (when on): the number must have been confirmed by SMS code
+  const phoneVerified = await PhoneOtpService.resolveForOrder(
+    payload.phone,
+    payload.phoneVerificationToken,
+  );
+  return createOrder(null, { ...payload, orderType: OrderType.ONLINE, phoneVerified });
 };
 
 export const OrderService = {

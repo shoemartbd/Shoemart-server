@@ -115,6 +115,19 @@ router.get(
   }),
 );
 
+// Report per wholesaler account (under /report, so staff need report.view)
+router.get(
+  "/report/wholesalers",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  catchAsync(async (req: Request, res: Response) => {
+    const data = await WholesaleRequestService.getWholesalerReport({
+      startDate: req.query.startDate as string,
+      endDate: req.query.endDate as string,
+    });
+    sendResponse(res, { httpStatusCode: 200, success: true, message: "Wholesaler report retrieved", data });
+  }),
+);
+
 // Wholesale sales report (completed sales, profit / loss)
 router.get(
   "/report",

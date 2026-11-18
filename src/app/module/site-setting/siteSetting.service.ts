@@ -32,6 +32,7 @@ const updateSiteSettings = async (payload: {
   copyrightText?: string;
   lowStockThreshold?: number;
   guestCheckoutEnabled?: boolean;
+  phoneOtpEnabled?: boolean;
 }) => {
   // Ensure the default settings row exists first
   await getSiteSettings();

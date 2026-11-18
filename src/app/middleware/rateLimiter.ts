@@ -122,3 +122,37 @@ export const passwordResetRateLimiter = rateLimit({
     res.status(options.statusCode).json(options.message);
   },
 });
+
+// Phone OTP SMS: per IP, on top of the per-number limits in the OTP service
+// (1 code a minute, 5 an hour), so a script can't drain the SMS balance by
+// trying many numbers
+export const phoneOtpSendRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  limit: 15,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(req.ip ?? ""),
+  message: {
+    success: false,
+    message: "Too many verification codes requested, please try again later",
+  },
+  handler: (req, res, next, options) => {
+    res.status(options.statusCode).json(options.message);
+  },
+});
+
+// Code checks per IP (each code also locks after 5 wrong tries)
+export const phoneOtpVerifyRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 30,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(req.ip ?? ""),
+  message: {
+    success: false,
+    message: "Too many tries, please wait a few minutes",
+  },
+  handler: (req, res, next, options) => {
+    res.status(options.statusCode).json(options.message);
+  },
+});

@@ -23,6 +23,10 @@ model SiteSetting {
   // Lets customers place online orders without logging in
   guestCheckoutEnabled Boolean @default(true)
 
+  // Guest orders need the phone number confirmed by an SMS code (OTP).
+  // Off by default: turn on once SMS Settings work.
+  phoneOtpEnabled Boolean @default(false)
+
   updatedAt DateTime @updatedAt
 
   @@map("site_settings")

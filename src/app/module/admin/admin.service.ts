@@ -18,16 +18,70 @@ const getAllAdmins = async () => {
   return admins;
 };
 
-const getAllUsers = async () => {
-  const users = await prisma.user.findMany({
-    where: {
-      isDeleted: false,
+// Dashboard → Users: search (name / email), role and status filters, sort and
+// pages. role=ADMIN also lists super admins.
+const USER_SORT_FIELDS = ["name", "email", "role", "status", "createdAt"] as const;
+
+const getAllUsers = async (query: Record<string, unknown> = {}) => {
+  const term = typeof query.searchTerm === "string" ? query.searchTerm.trim() : "";
+  const role = typeof query.role === "string" ? query.role : "";
+  const userStatus = typeof query.status === "string" ? query.status : "";
+  const page = Math.max(Number(query.page) || 1, 1);
+  const limit = Math.min(Math.max(Number(query.limit) || 10, 1), 100);
+  const sortBy = USER_SORT_FIELDS.includes(query.sortBy as (typeof USER_SORT_FIELDS)[number])
+    ? (query.sortBy as (typeof USER_SORT_FIELDS)[number])
+    : "createdAt";
+  const sortOrder = query.sortOrder === "asc" ? "asc" : "desc";
+
+  const roles =
+    role === Role.ADMIN
+      ? [Role.ADMIN, Role.SUPER_ADMIN]
+      : (Object.values(Role) as string[]).includes(role)
+        ? [role as Role]
+        : undefined;
+
+  const where = {
+    isDeleted: false,
+    ...(roles && { role: { in: roles } }),
+    ...((Object.values(UserStatus) as string[]).includes(userStatus) && {
+      status: userStatus as UserStatus,
+    }),
+    ...(term && {
+      OR: [
+        { name: { contains: term, mode: "insensitive" as const } },
+        { email: { contains: term, mode: "insensitive" as const } },
+      ],
+    }),
+  };
+
+  const [total, data, byRole] = await Promise.all([
+    prisma.user.count({ where }),
+    prisma.user.findMany({
+      where,
+      orderBy: { [sortBy]: sortOrder },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.user.groupBy({ by: ["role"], where: { isDeleted: false }, _count: true }),
+  ]);
+
+  const count = (r: Role) => byRole.find((x) => x.role === r)?._count ?? 0;
+  return {
+    data,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      // For the role tabs
+      roleCounts: {
+        all: byRole.reduce((s, x) => s + x._count, 0),
+        ADMIN: count(Role.ADMIN) + count(Role.SUPER_ADMIN),
+        USER: count(Role.USER),
+        WHOLESALER: count(Role.WHOLESALER),
+      },
     },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
-  return users;
+  };
 };
 
 const getAdminById = async (id: string) => {

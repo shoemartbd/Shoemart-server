@@ -1,0 +1,16 @@
+// One-time codes sent by SMS to verify a phone number before a guest order.
+// The code itself is never stored, only a hash of it.
+model PhoneOtp {
+  id         String    @id @default(uuid())
+  phone      String // 01XXXXXXXXX
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0) // wrong codes entered
+  verifiedAt DateTime?
+  ip         String?
+  createdAt  DateTime  @default(now())
+
+  @@index([phone, createdAt])
+  @@index([createdAt])
+  @@map("phone_otps")
+}

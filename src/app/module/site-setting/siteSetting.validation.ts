@@ -16,4 +16,5 @@ export const updateSiteSettingZodSchema = z.object({
   copyrightText: z.string().optional(),
   lowStockThreshold: z.coerce.number().int().min(0).max(100000).optional(),
   guestCheckoutEnabled: z.boolean().optional(),
+  phoneOtpEnabled: z.boolean().optional(),
 });
