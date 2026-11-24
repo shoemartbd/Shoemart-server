@@ -62,8 +62,15 @@ export type SmsSendResult =
 const sendSmsChecked = async (phone: string, message: string): Promise<SmsSendResult> => {
   try {
     const settings = await SmsSettingService.getSmsSettings();
-    if (!settings.enabled || !settings.apiKey || !settings.senderId) {
-      return { ok: false, reason: "NOT_CONFIGURED", message: "SMS is not set up" };
+    if (!settings.apiKey || !settings.senderId) {
+      return { ok: false, reason: "NOT_CONFIGURED", message: "SMS API key / sender ID missing" };
+    }
+    if (!settings.enabled) {
+      return {
+        ok: false,
+        reason: "NOT_CONFIGURED",
+        message: "SMS Status is Inactive in Dashboard → SMS Settings",
+      };
     }
 
     const params = new URLSearchParams({
@@ -101,7 +108,7 @@ const sendSms = async (phone: string, message: string) => {
 
 // Remaining SMS balance (in taka) from BulkSMSBD, or why it can't be read
 const getBalance = async (): Promise<
-  { ok: true; balance: number } | { ok: false; message: string }
+  { ok: true; balance: number; enabled: boolean } | { ok: false; message: string }
 > => {
   try {
     const settings = await SmsSettingService.getSmsSettings();
@@ -111,7 +118,10 @@ const getBalance = async (): Promise<
     );
     const code = Number(body.response_code);
     const balance = Number(body.balance);
-    if (code === SUCCESS_CODE && Number.isFinite(balance)) return { ok: true, balance };
+    if (code === SUCCESS_CODE && Number.isFinite(balance)) {
+      // enabled = the Status switch in SMS Settings; when off nothing is sent
+      return { ok: true, balance, enabled: settings.enabled };
+    }
     return {
       ok: false,
       message:
