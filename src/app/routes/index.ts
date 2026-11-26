@@ -50,6 +50,7 @@ import { BlockedPhoneRoutes } from "../module/blocked-phone/blockedPhone.route";
 import { WholesaleRequestRoutes } from "../module/wholesale-request/wholesaleRequest.route";
 import { StoreRoutes } from "../module/store/store.route";
 import { PhoneOtpRoutes } from "../module/phone-otp/phoneOtp.route";
+import { SeoRoutes } from "../module/seo/seo.route";
 import { WholesaleProductRoutes } from "../module/wholesale-product/wholesaleProduct.route";
 
 const router = Router();
@@ -105,6 +106,7 @@ router.use("/blocked-phones", BlockedPhoneRoutes);
 router.use("/wholesale-requests", WholesaleRequestRoutes);
 router.use("/wholesale-products", WholesaleProductRoutes);
 router.use("/phone-otp", PhoneOtpRoutes);
+router.use("/seo", SeoRoutes);
 router.use("/stores", StoreRoutes);
 
 export const IndexRoutes = router;
